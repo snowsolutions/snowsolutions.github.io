@@ -1,0 +1,92 @@
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<div class="time-block">
+    <span class="time-value" id="time-minute"></span>
+</div>
+<div class="function-block debug-flag">
+    <span>BUG</span>
+</div>
+<div class="function-block">
+    <button class="function-btn hit-core">Core</button>
+</div>
+<div class="function-block core-time">
+    <span>0</span>
+</div>
+<script>
+    jQuery(document).ready(function () {
+        function updateTime() {
+            let minute = document.getElementById('time-minute')
+            let current = new Date();
+            let min = current.getMinutes();
+            console.log(min);
+            if (min < 10) {
+                min = "0" + min;
+            }
+            minute.innerHTML = min
+        }
+
+        function hitCore()
+        {
+            let counter = jQuery('.core-time span');
+            let count = parseInt(counter.text())
+            counter.text(count + 1)
+        }
+        setInterval(updateTime, 500)
+
+        jQuery('.debug-flag').click(function () {
+            let _this = jQuery(this)
+            _this.toggleClass('off')
+        })
+
+        jQuery('.hit-core').click(function () {
+            hitCore()
+        })
+    })
+</script>
+<style>
+    .function-btn {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        margin: 5px;
+        box-shadow: none;
+        padding: 0;
+    }
+    .function-block {
+        background-color: black;
+        height: 50px;
+        width: 50px;
+        float: left;
+        margin: 0 5px;
+        color: white;
+    }
+    .debug-flag {
+        background-color: red;
+    }
+    .debug-flag.off {
+        background-color: green;
+    }
+    .function-block span {
+        font-size: 16px;
+        line-height: 16px;
+        margin-top: 17px;
+        width: 100%;
+        display: inline-block;
+        text-align: center;
+    }
+    .time-block {
+        background-color: black;
+        height: 100px;
+        width: 100px;
+        float: left;
+    }
+    .time-value {
+        color: white;
+        font-size: 70px;
+        line-height: 70px;
+        letter-spacing: 3px;
+        margin-top: 15px;
+        text-align: center;
+        width: 100%;
+        display: inline-block;
+    }
+</style>
