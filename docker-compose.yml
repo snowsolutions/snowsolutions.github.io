@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  webapp:
+    container_name: cloud_bigtime
+    image: ubuntu/apache2:latest
+    volumes:
+      - ./index.html:/var/www/html/index.html
+    restart: always
+    ports:
+      - 9998:80
