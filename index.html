@@ -13,6 +13,10 @@
 </div>
 <script>
     jQuery(document).ready(function () {
+        setInterval(() => {
+            //refresh to update new code
+            window.location.reload();
+        }, 5000)
         function updateTime() {
             let minute = document.getElementById('time-minute')
             let current = new Date();
