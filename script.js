@@ -13,6 +13,12 @@ const CHATS_STORAGE_KEY = 'ai_assistant_chats';
 const ACTIVE_CHAT_KEY = 'ai_assistant_active_chat';
 const API_KEY_STORAGE = 'openai_api_key_secure';
 
+// View management
+let currentView = 'chat'; // 'chat' or 'note'
+
+// Storage keys
+const CURRENT_VIEW_KEY = 'ai_assistant_current_view';
+
 // Chat management
 let chats = {};
 let currentChatId = 'default';
@@ -246,7 +252,16 @@ function renderChatList() {
   const chatItems = Array.from(Object.values(chats))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   
-  let chatListHTML = '<div class="chat-section-title">Chats</div>';
+  // Build only the chat items HTML, preserving the new chat button
+  let chatListHTML = `
+    <div class="new-chat-button" id="newChatButton" title="New Chat">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+      </svg>
+      <span>New Chat</span>
+    </div>
+    <div class="chat-section-title">Chats</div>
+  `;
   
   chatItems.forEach(chat => {
     const isActive = chat.id === currentChatId ? 'active' : '';
@@ -270,6 +285,15 @@ function renderChatList() {
   });
   
   chatList.innerHTML = chatListHTML;
+  
+  // Re-add event listener to the new chat button
+  const newChatBtn = document.getElementById('newChatButton');
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', function() {
+      console.log('New chat button clicked!'); // Debug log
+      createNewChat();
+    });
+  }
   
   // Add event listeners to chat items
   document.querySelectorAll('.chat-item').forEach(item => {
@@ -708,27 +732,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.error('newChatButton not found!');
   }
   
+  // Add navigation event listeners
+  const chatNavButton = document.getElementById('chatNavButton');
+  const noteNavButton = document.getElementById('noteNavButton');
+  
+  if (chatNavButton) {
+    chatNavButton.addEventListener('click', function() {
+      switchToView('chat');
+    });
+  }
+  
+  if (noteNavButton) {
+    noteNavButton.addEventListener('click', function() {
+      switchToView('note');
+    });
+  }
+  
+  // Load current view preference
+  loadCurrentView();
+  
   // Check for API key and initialize interface
   const storedKey = getStoredApiKey();
   if (storedKey) {
-    // Show loading state while testing existing key
-    disableInterface();
-    showInfo('Validating your API key...');
-    
-    const testResult = await testApiKey(storedKey);
-    
-    if (testResult.success) {
-      OPENAI_API_KEY = storedKey;
-      enableInterface();
-      showSuccess('Welcome back! Your API key is valid.');
-    } else {
-      // Stored key is invalid, clear it and show modal
-      clearApiKey();
-      showError('Your stored API key is no longer valid. Please enter a new one.');
-      setTimeout(() => {
-        showApiKeyModal();
-      }, 1000);
-    }
+    // If we have a stored key, trust it and enable interface immediately
+    OPENAI_API_KEY = storedKey;
+    enableInterface();
+    showSuccess('Welcome back! Ready to chat.');
   } else {
     // No stored key, disable interface and show modal
     disableInterface();
@@ -754,18 +783,17 @@ document.addEventListener('DOMContentLoaded', async function() {
   renderMessages();
   updateActiveChat();
   
-  // Handle navigation items
+  // Initialize the correct view
+  switchToView(currentView);
+  
+  // Handle navigation items (remove old handler)
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(item => {
     item.addEventListener('click', function() {
-      if (this.id === 'newChatButton') {
-        return; // Already handled by specific event listener
+      const viewType = this.dataset.view;
+      if (viewType) {
+        switchToView(viewType);
       }
-      
-      // Remove active class from all items
-      navItems.forEach(i => i.classList.remove('active'));
-      // Add active class to clicked item
-      this.classList.add('active');
     });
   });
 });
@@ -1131,4 +1159,65 @@ function enableInterface() {
   
   // Focus on input
   messageInput.focus();
+}
+
+// View switching functions
+function switchToView(viewName) {
+  console.log('Switching to view:', viewName);
+  
+  // Update current view
+  currentView = viewName;
+  
+  // Update navigation
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  const teamsLayout = document.querySelector('.teams-layout');
+  
+  if (viewName === 'chat') {
+    document.getElementById('chatNavButton').classList.add('active');
+    document.getElementById('chatSidebar').style.display = 'flex';
+    document.getElementById('noteSidebar').style.display = 'none';
+    document.getElementById('chatArea').style.display = 'flex';
+    document.getElementById('noteArea').style.display = 'none';
+    teamsLayout.classList.remove('note-view');
+  } else if (viewName === 'note') {
+    document.getElementById('noteNavButton').classList.add('active');
+    document.getElementById('chatSidebar').style.display = 'none';
+    document.getElementById('noteSidebar').style.display = 'none'; // Hide note sidebar too
+    document.getElementById('chatArea').style.display = 'none';
+    document.getElementById('noteArea').style.display = 'flex';
+    teamsLayout.classList.add('note-view');
+    
+    // Initialize Notion integration
+    if (window.NotionIntegration) {
+      window.NotionIntegration.initialize();
+    }
+  }
+  
+  // Save current view preference
+  saveCurrentView();
+}
+
+function saveCurrentView() {
+  try {
+    localStorage.setItem(CURRENT_VIEW_KEY, currentView);
+  } catch (error) {
+    console.error('Error saving current view:', error);
+  }
+}
+
+function loadCurrentView() {
+  try {
+    const saved = localStorage.getItem(CURRENT_VIEW_KEY);
+    if (saved && (saved === 'chat' || saved === 'note')) {
+      currentView = saved;
+    } else {
+      currentView = 'chat';
+    }
+  } catch (error) {
+    console.error('Error loading current view:', error);
+    currentView = 'chat';
+  }
 } 
